@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Marketing-to-Revenue Attribution Agent</title>
+<style>
+:root{--bg:#f4f7f6;--card:#fff;--ink:#14232b;--mut:#5b6b73;--line:#dbe3e1;--teal:#0f6b73;--leak:#c2255c;--gold:#b7791f;--soft:#e4f0ee;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a1f;--card:#17262d;--ink:#e8f0ee;--mut:#9fb2b8;--line:#2a3d45;--teal:#4fc3c9;--leak:#ff6b9a;--gold:#e8b04a;--soft:#1d3238}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:980px;margin:0 auto;padding:16px 14px 40px}
+h1,h2,.big{font-family:Georgia,"Times New Roman",serif;font-weight:700;margin:0}
+h1{font-size:24px;line-height:1.2}h2{font-size:18px;margin-bottom:4px}
+p.sub{color:var(--mut);margin:4px 0 12px}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin:12px 0}
+.row{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:6px 12px;border-radius:99px;font:inherit;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--teal);color:#fff;border-color:var(--teal)}
+.chip:focus-visible,input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.kpi{background:var(--soft);border-radius:8px;padding:10px}.kpi small{color:var(--mut)}.big{font-size:22px;display:block}
+.lead{font-size:16px;margin:10px 0 0}.lead b{color:var(--leak)}
+.bar{display:grid;grid-template-columns:96px 1fr 84px;gap:8px;align-items:center;margin:6px 0;font-size:13px}
+.bar>div:nth-child(2){background:var(--soft);border-radius:4px;height:18px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--teal)}.bar i.l{background:var(--leak)}.bar i.g{background:var(--gold)}
+.bar span:last-child{text-align:right;color:var(--mut)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:520px}
+th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--line)}th:first-child,td:first-child{text-align:left}
+td.h{color:var(--ink)}
+.note{color:var(--mut);font-size:13px}
+.drop{color:var(--leak);font-size:13px;margin:-2px 0 4px 104px}
+select,input[type=text]{font:inherit;padding:7px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)}
+input[type=range]{width:100%}
+#chat{max-height:300px;overflow:auto;margin:10px 0}
+.m{padding:8px 10px;border-radius:8px;margin:6px 0;background:var(--soft)}.m.u{background:var(--teal);color:#fff;margin-left:20%}
+.tr{display:block;color:var(--mut);font-size:12px;margin-top:4px}
+.rec{display:flex;gap:8px;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding:8px 0}
+.rec button{font:inherit;padding:4px 10px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.ok{color:var(--teal)}.no{color:var(--leak)}
+</style></head><body><main>
+<h1>Where does marketing lose value?</h1>
+<p class="sub">Simulated 12-month dataset: 20,000 leads, 7 channels, all in INR. The agent traces exposure → lead → qualified → opportunity → won revenue.</p>
+<div class="row" id="seg" role="group" aria-label="Segment filter"></div>
+<section id="sum"></section>
+<section><h2>Funnel</h2><p class="note">Share of leads that reach each stage, with the drop at each step.</p><div id="fun"></div></section>
+<section><h2>Leads vs revenue by channel</h2><p class="note">A channel is a leak when its share of leads is much bigger than its share of revenue.</p><div id="chn"></div><div class="scroll"><table id="eco"></table></div></section>
+<section><h2>Who gets the credit?</h2><p class="note">Different attribution models credit the same revenue to different channels.</p><div class="row" id="mod" role="group" aria-label="Attribution model"></div><div id="att"></div><div class="scroll"><table id="cmp"></table></div></section>
+<section><h2>Leakage map</h2><p class="note">Estimated revenue lost at each stage versus the best channel at that stage. Darker means bigger loss.</p><div class="scroll"><table id="hm"></table></div></section>
+<section><h2>Root causes</h2><p class="note">Speed of first sales response and deal quality by segment.</p><div id="rt"></div><div class="scroll"><table id="sg"></table></div></section>
+<section><h2>Budget what-if</h2><div class="row"><label>Move spend from <select id="sf"></select></label><label>to <select id="st"></select></label></div><label>Share moved: <b id="sv">20%</b><input type="range" id="sl" min="5" max="50" value="20" step="5"></label><p class="lead" id="sim"></p><p class="note">Assumes the receiving channel earns 60% of its current return on extra spend (diminishing returns). A planning estimate, not a forecast.</p></section>
+<section><h2>Ask the agent</h2><div class="row" id="qs"></div><div id="chat" aria-live="polite"></div><div class="row"><input type="text" id="q" placeholder="e.g. Why is Paid Social not generating revenue?" style="flex:1;min-width:200px"><button class="chip" id="go">Ask</button></div></section>
+<section><h2>Recommendations and governance</h2><div id="recs"></div><p class="note">Attribution models are assumptions, not ground truth. Data is synthetic and contains no personal information. Every action needs human approval before use.</p></section>
+</main>
+<script>
+const CH=["Paid Search","Paid Social","Email","Webinar","SEO","Referral","Events"],SG=["SMB","Mid-Market","Enterprise"],ST=["Lead","MQL","SQL","Opportunity","Won"];
+const SH=[.2,.4,.08,.05,.15,.04,.08],CPL=[900,500,250,1800,200,600,2500],BASE=[180000,90000,220000,300000,170000,260000,280000];
+const P=[[.35,.4,.55,.3],[.22,.28,.45,.18],[.45,.55,.65,.38],[.6,.62,.7,.42],[.38,.42,.55,.28],[.55,.6,.7,.45],[.42,.45,.6,.33]];
+const TW=[.12,.1,.4,.1,.08,.05,.15],SM=[.6,1,2.2],DS=[.27,.12,.08],CR=[.3,.1,.05],RB=["Under 4 h","4–24 h","24–48 h","Over 48 h"],MULT=[1,.7,.5,.33];
+const AM=["First touch","Last touch","Linear","Time decay","Position-based"];
+function rng(s){return()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const R=rng(42),pick=w=>{let r=R(),a=0;for(let i=0;i<w.length;i++){a+=w[i];if(r<a)return i}return w.length-1};
+const L=[];
+for(let i=0;i<20000;i++){const c=pick(SH),sg=pick([.55,.3,.15]),rb=pick([.35,.3,.2,.15]);let s=0;
+ if(R()<P[c][0]){s=1;if(R()<P[c][1]*MULT[rb]){s=2;if(R()<P[c][2]){s=3;if(R()<P[c][3])s=4}}}
+ const t=[c];for(let j=Math.floor(R()*3);j>0;j--)t.push(pick(TW));
+ let rev=0,ch=0;if(s==4){const d=Math.max(0,DS[sg]+(R()-.5)*.1);ch=R()<CR[sg]?1:0;rev=BASE[c]*SM[sg]*(1-d)*(ch?.4:1)}
+ L.push({c,sg,rb,s,t,rev,ch})}
+let seg=-1,model=2,D;
+const $=id=>document.getElementById(id);
+const inr=n=>n>=1e7?"₹"+(n/1e7).toFixed(2)+" Cr":n>=1e5?"₹"+(n/1e5).toFixed(1)+" L":"₹"+Math.round(n).toLocaleString("en-IN");
+const pc=x=>(x*100).toFixed(1)+"%",sum=a=>a.reduce((x,y)=>x+y,0);
+function compute(){const rows=L.filter(l=>seg<0||l.sg==seg),n=CH.length;
+ const cnt=CH.map(()=>[0,0,0,0,0]),rev=Array(n).fill(0),A=AM.map(()=>Array(n).fill(0)),F=[0,0,0,0,0],rb=RB.map(()=>[0,0]);
+ rows.forEach(l=>{for(let k=0;k<=l.s;k++){cnt[l.c][k]++;F[k]++}rev[l.c]+=l.rev;rb[l.rb][0]++;if(l.s==4)rb[l.rb][1]++;
+  if(l.s==4){const t=l.t,m=t.length,R_=l.rev;A[0][t[0]]+=R_;A[1][t[m-1]]+=R_;t.forEach(x=>A[2][x]+=R_/m);
+   const w=t.map((_,i)=>Math.pow(2,-(m-1-i))),ws=sum(w);t.forEach((x,i)=>A[3][x]+=R_*w[i]/ws);
+   if(m==1)A[4][t[0]]+=R_;else if(m==2){A[4][t[0]]+=R_/2;A[4][t[1]]+=R_/2}else{A[4][t[0]]+=R_*.4;A[4][t[m-1]]+=R_*.4;t.slice(1,-1).forEach(x=>A[4][x]+=R_*.2/(m-2))}}});
+ const spend=cnt.map((c,i)=>c[0]*CPL[i]),tr=sum(rev),ts=sum(spend),avg=tr/Math.max(1,F[4]);
+ const bench=[0,1,2,3].map(t=>Math.max(...cnt.map(c=>c[t]>=30?c[t+1]/c[t]:0)));
+ const leak=cnt.map(c=>[0,1,2,3].map(t=>c[t]?Math.max(0,(bench[t]-c[t+1]/c[t])*c[t])*(F[4]/Math.max(1,F[t+1]))*avg:0));
+ const sgs=SG.map((_,g)=>{const w=rows.filter(l=>l.sg==g&&l.s==4);return{n:w.length,disc:DS[g],ch:w.length?sum(w.map(l=>l.ch))/w.length:0,rev:sum(w.map(l=>l.rev))}});
+ D={rows,cnt,rev,A,F,rb,spend,tr,ts,avg,bench,leak,sgs,n}}
+const romi=i=>D.rev[i]/Math.max(1,D.spend[i]);
+function topLeaks(k){const a=[];D.leak.forEach((r,c)=>r.forEach((v,t)=>a.push({c,t,v})));return a.sort((x,y)=>y.v-x.v).slice(0,k)}
+const lk=x=>CH[x.c]+" at "+ST[x.t]+"→"+ST[x.t+1];
+function render(){compute();const{cnt,rev,F,tr,ts}=D,tl=topLeaks(3),n=D.n;
+ $("sum").innerHTML=`<div class="kpis"><div class="kpi"><small>Leads</small><span class="big">${F[0].toLocaleString("en-IN")}</span></div><div class="kpi"><small>Won deals</small><span class="big">${F[4].toLocaleString("en-IN")}</span></div><div class="kpi"><small>Net revenue</small><span class="big">${inr(tr)}</span></div><div class="kpi"><small>Marketing spend</small><span class="big">${inr(ts)}</span></div><div class="kpi"><small>Lead→won</small><span class="big">${pc(F[4]/F[0])}</span></div></div><p class="lead">Only <b>${pc(F[4]/F[0])}</b> of leads become revenue. The three biggest leaks: ${tl.map(x=>`<b>${lk(x)}</b> (${inr(x.v)})`).join(", ")}.</p>`;
+ $("fun").innerHTML=F.map((v,k)=>`<div class="bar"><span>${ST[k]}</span><div><i style="width:${v/F[0]*100}%"></i></div><span>${v.toLocaleString("en-IN")}</span></div>`+(k<4?`<div class="drop">−${pc(1-F[k+1]/v)} lost before ${ST[k+1]}</div>`:"")).join("");
+ const mx=Math.max(...cnt.map((c,i)=>Math.max(c[0]/F[0],rev[i]/tr)));
+ $("chn").innerHTML=CH.map((c,i)=>`<div class="bar"><span>${c}</span><div><i class="g" style="width:${cnt[i][0]/F[0]/mx*100}%;height:50%"></i><i style="width:${rev[i]/tr/mx*100}%;height:50%"></i></div><span>${pc(cnt[i][0]/F[0])} / ${pc(rev[i]/tr)}</span></div>`).join("")+`<p class="note">Gold bar = share of leads. Teal bar = share of revenue.</p>`;
+ $("eco").innerHTML=`<tr><th>Channel</th><th>Leads</th><th>Spend</th><th>Cost/lead</th><th>Cost/won deal</th><th>Revenue</th><th>ROMI</th></tr>`+CH.map((c,i)=>`<tr><td>${c}</td><td>${cnt[i][0]}</td><td>${inr(D.spend[i])}</td><td>${inr(CPL[i])}</td><td>${cnt[i][4]?inr(D.spend[i]/cnt[i][4]):"–"}</td><td>${inr(rev[i])}</td><td style="color:${romi(i)<1?"var(--leak)":"var(--teal)"}"><b>${romi(i).toFixed(1)}×</b></td></tr>`).join("");
+ $("mod").innerHTML=AM.map((m,i)=>`<button class="chip" aria-pressed="${i==model}" data-m="${i}">${m}</button>`).join("");
+ const a=D.A[model],am=Math.max(...a);$("att").innerHTML=CH.map((c,i)=>`<div class="bar"><span>${c}</span><div><i style="width:${a[i]/am*100}%"></i></div><span>${pc(a[i]/tr)}</span></div>`).join("");
+ $("cmp").innerHTML=`<tr><th>Channel</th>${AM.map(m=>`<th>${m}</th>`).join("")}</tr>`+CH.map((c,i)=>`<tr><td>${c}</td>${D.A.map(x=>`<td>${pc(x[i]/tr)}</td>`).join("")}</tr>`).join("");
+ const lm=Math.max(...D.leak.flat(),1);
+ $("hm").innerHTML=`<tr><th>Channel</th>${[0,1,2,3].map(t=>`<th>${ST[t]}→${ST[t+1]}</th>`).join("")}</tr>`+D.leak.map((r,c)=>`<tr><td>${CH[c]}</td>${r.map(v=>`<td class="h" style="background:rgba(194,37,92,${(v/lm*.7).toFixed(2)})">${v>0?inr(v):"–"}</td>`).join("")}</tr>`).join("");
+ $("rt").innerHTML=D.rb.map((b,i)=>`<div class="bar"><span>${RB[i]}</span><div><i class="${i>1?"l":""}" style="width:${b[0]?b[1]/b[0]*100/ (Math.max(...D.rb.map(x=>x[1]/Math.max(1,x[0])))*100)*100:0}%"></i></div><span>${pc(b[1]/Math.max(1,b[0]))}</span></div>`).join("")+`<p class="note">Lead→won conversion by time to first sales response.</p>`;
+ $("sg").innerHTML=`<tr><th>Segment</th><th>Won deals</th><th>Avg discount</th><th>Churn within 90 days</th><th>Net revenue</th></tr>`+D.sgs.map((g,i)=>`<tr><td>${SG[i]}</td><td>${g.n}</td><td>${pc(g.disc)}</td><td>${pc(g.ch)}</td><td>${inr(g.rev)}</td></tr>`).join("");
+ sim()}
+function sim(){const f=+$("sf").value,t=+$("st").value,p=$("sl").value/100;$("sv").textContent=Math.round(p*100)+"%";
+ const S=p*D.spend[f],net=S*romi(t)*.6-S*romi(f);
+ $("sim").innerHTML=f==t?"Pick two different channels.":`Moving ${inr(S)} from ${CH[f]} to ${CH[t]} changes revenue by <b style="color:${net>=0?"var(--teal)":"var(--leak)"}">${net>=0?"+":"−"}${inr(Math.abs(net))}</b>.`}
+function answer(q){q=q.toLowerCase();const tl=topLeaks(3),ci=CH.findIndex(c=>q.includes(c.toLowerCase()));let a,tr;
+ if(ci>=0){const c=D.cnt[ci];a=`${CH[ci]} brings ${pc(c[0]/D.F[0])} of leads but ${pc(D.rev[ci]/D.tr)} of revenue. Its lead→won rate is ${pc(c[4]/c[0])}, cost per won deal is ${c[4]?inr(D.spend[ci]/c[4]):"not available"} and ROMI is ${romi(ci).toFixed(1)}×. Its biggest drop is at ${lk(topLeaks(40).find(x=>x.c==ci)||{c:ci,t:0})}.`;tr="Orchestrator → FunnelAgent → AttributionAgent → LeakageAgent"}
+ else if(/respon|speed|follow|slow/.test(q)){const r=D.rb.map(b=>b[1]/Math.max(1,b[0]));a=`Leads contacted in under 4 hours convert at ${pc(r[0])}, versus ${pc(r[3])} after 48 hours, a ${(r[0]/r[3]).toFixed(1)}× gap. A faster follow-up rule is the cheapest fix.`;tr="Orchestrator → FunnelAgent → LeakageAgent"}
+ else if(/attribut|credit|last|first/.test(q)){const e=2;a=`Last touch gives Email ${pc(D.A[1][e]/D.tr)} of revenue, while first touch gives it ${pc(D.A[0][e]/D.tr)}. Paid Social gets ${pc(D.A[0][1]/D.tr)} on first touch and ${pc(D.A[1][1]/D.tr)} on last touch. Compare models before moving budget.`;tr="Orchestrator → AttributionAgent"}
+ else if(/budget|recommend|shift|invest|action|fix/.test(q)){a=recs().map(r=>"• "+r.t).join("\n");tr="Orchestrator → RecommendationAgent → GovernanceAgent"}
+ else if(/leak|lose|losing|where|why|drop/.test(q)){a="Top leaks: "+tl.map(x=>`${lk(x)} (${inr(x.v)})`).join("; ")+`. Overall only ${pc(D.F[4]/D.F[0])} of leads become revenue.`;tr="Orchestrator → FunnelAgent → LeakageAgent"}
+ else{a="Try asking about a channel (for example Paid Social), the biggest leaks, attribution, response time, or budget recommendations.";tr="Orchestrator"}
+ return{a,tr}}
+function ask(q){if(!q.trim())return;const r=answer(q),c=$("chat");c.insertAdjacentHTML("beforeend",`<div class="m u"></div><div class="m">${r.a.replace(/\n/g,"<br>")}<span class="tr">${r.tr}</span></div>`);c.querySelectorAll(".u")[c.querySelectorAll(".u").length-1].textContent=q;c.scrollTop=c.scrollHeight;$("q").value=""}
+const dec={};
+function recs(){const w=[...D.cnt.keys()].sort((a,b)=>romi(a)-romi(b)),b=[...D.cnt.keys()].sort((a,b)=>romi(b)-romi(a));
+ return[{t:`Cut ${CH[w[0]]} spend by 30% and move it to ${CH[b[0]]} (ROMI ${romi(w[0]).toFixed(1)}× vs ${romi(b[0]).toFixed(1)}×).`},{t:"Set a 4-hour first-response rule for every new lead."},{t:"Cap SMB discounts at 15% and add onboarding in the first 90 days."},{t:"Report on several attribution models, not last touch alone."}]}
+function showRecs(){$("recs").innerHTML=recs().map((r,i)=>`<div class="rec"><span>${r.t}</span><span>${dec[i]?`<b class="${dec[i]=="Approved"?"ok":"no"}">${dec[i]}</b>`:`<button data-a="${i}|Approved">Approve</button> <button data-a="${i}|Rejected">Reject</button>`}</span></div>`).join("")}
+$("seg").innerHTML=["All segments",...SG].map((s,i)=>`<button class="chip" aria-pressed="${i==0}" data-s="${i-1}">${s}</button>`).join("");
+$("sf").innerHTML=$("st").innerHTML=CH.map((c,i)=>`<option value="${i}">${c}</option>`).join("");$("sf").value=1;$("st").value=3;
+$("qs").innerHTML=["Why is Paid Social not generating revenue?","Where is the funnel leaking?","How does response time matter?","Which attribution model should I trust?","What should we do next?"].map(s=>`<button class="chip">${s}</button>`).join("");
+document.addEventListener("click",e=>{const t=e.target;
+ if(t.dataset.s!==undefined){seg=+t.dataset.s;document.querySelectorAll("#seg .chip").forEach(b=>b.setAttribute("aria-pressed",b==t));render();showRecs()}
+ else if(t.dataset.m!==undefined){model=+t.dataset.m;render()}
+ else if(t.dataset.a){const[i,v]=t.dataset.a.split("|");dec[i]=v;showRecs()}
+ else if(t.closest("#qs")&&t.tagName=="BUTTON")ask(t.textContent);
+ else if(t.id=="go")ask($("q").value)});
+$("q").addEventListener("keydown",e=>{if(e.key=="Enter")ask($("q").value)});
+["sf","st","sl"].forEach(i=>$(i).addEventListener("input",sim));
+render();showRecs();ask("Where is the funnel leaking?");
+</script></body></html>
